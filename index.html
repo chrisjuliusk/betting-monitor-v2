@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Betting Monitor V2</title>
+  <style>
+    :root{
+      --bg:#05070b;
+      --panel:#0d1118;
+      --line:rgba(255,255,255,.08);
+      --line2:rgba(94,169,255,.2);
+      --text:#edf2ff;
+      --muted:rgba(237,242,255,.56);
+      --green:#39d98a;
+      --red:#ff6f7f;
+      --blue:#62a9ff;
+      --yellow:#f6c65b;
+      --white:#fff;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,Arial,sans-serif
+    }
+    body{
+      min-height:100vh;
+      background-image:
+        radial-gradient(circle at top right,rgba(58,95,255,.18),transparent 28%),
+        radial-gradient(circle at top left,rgba(255,255,255,.05),transparent 18%)
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:10px 16px;
+      border-bottom:1px solid var(--line);
+      background:rgba(5,7,11,.9);
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter:blur(14px)
+    }
+    .left-top,.right-top,.tabs,.filters,.metrics,.legend{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center
+    }
+    .brand-title{
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:.18em;
+      text-transform:uppercase
+    }
+    .sub,.tiny{font-size:12px;color:var(--muted)}
+    .dot{
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      display:inline-block;
+      margin-right:8px;
+      background:var(--green);
+      box-shadow:0 0 10px rgba(57,217,138,.8)
+    }
+    .btn,.tab,.field,.pill{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      border-radius:6px;
+      font-size:12px;
+      padding:8px 10px
+    }
+    .btn{cursor:pointer}
+    .tab{cursor:pointer}
+    .tab.active{
+      background:#162338;
+      border-color:var(--line2)
+    }
+    .field{
+      background:rgba(0,0,0,.25);
+      min-height:36px;
+    }
+    .field.search{min-width:240px}
+    .controls{
+      padding:10px 16px 8px;
+      border-bottom:1px solid var(--line);
+      background:rgba(9,12,18,.95);
+      position:sticky;
+      top:46px;
+      z-index:40;
+      backdrop-filter:blur(12px)
+    }
+    .filters,.metrics{margin-top:8px}
+    .pill{color:var(--muted)}
+    .notice{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:8px;
+      background:rgba(255,111,127,.08);
+      color:#ffdce1;
+      border:1px solid rgba(255,111,127,.18);
+      font-size:12px
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:1.9fr 1.05fr;
+      min-height:calc(100vh - 110px)
+    }
+    .feed{border-right:1px solid var(--line)}
+    .sidebar{background:rgba(255,255,255,.02)}
+    .thead,.row{
+      display:grid;
+      grid-template-columns:2.4fr .7fr .9fr 1fr .9fr .8fr .9fr .8fr .95fr;
+      gap:10px;
+      align-items:center
+    }
+    .thead{
+      position:sticky;
+      top:108px;
+      z-index:10;
+      background:#080b10;
+      border-bottom:1px solid var(--line);
+      padding:10px 14px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:rgba(255,255,255,.44)
+    }
+    .rows{
+      max-height:calc(100vh - 148px);
+      overflow:auto
+    }
+    .row{
+      padding:10px 14px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:rgba(0,0,0,.06);
+      cursor:pointer;
+      font-size:12px
+    }
+    .row:nth-child(2n){background:rgba(10,16,26,.7)}
+    .row:hover,.row.active{background:rgba(26,42,74,.78)}
+    .market-title{
+      font-size:13px;
+      font-weight:700;
+      line-height:1.35
+    }
+    .market-meta{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:11px
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05)
+    }
+    .badge.fast{
+      color:#ffd8de;
+      background:rgba(255,111,127,.1);
+      border-color:rgba(255,111,127,.18)
+    }
+    .badge.pressure{
+      color:#ffecc2;
+      background:rgba(246,198,91,.1);
+      border-color:rgba(246,198,91,.18)
+    }
+    .badge.smart{
+      color:#d3deff;
+      background:rgba(98,169,255,.1);
+      border-color:rgba(98,169,255,.18)
+    }
+    .badge.watch{
+      color:#d0d8ea;
+      background:rgba(255,255,255,.05);
+      border-color:rgba(255,255,255,.1)
+    }
+    .green{color:var(--green)}
+    .red{color:var(--red)}
+    .yellow{color:var(--yellow)}
+    .muted{color:var(--muted)}
+    .side-wrap{
+      display:grid;
+      gap:10px;
+      padding:12px
+    }
+    .side-card{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.035);
+      border-radius:8px;
+      padding:12px
+    }
+    .side-title{
+      font-size:11px;
+      color:rgba(255,255,255,.44);
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      margin-bottom:8px
+    }
+    .detail-title{
+      font-size:18px;
+      font-weight:700;
+      line-height:1.4
+    }
+    .detail-grid,.kpi-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px
+    }
+    .detail-box,.kpi{
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.22);
+      border-radius:8px;
+      padding:10px
+    }
+    .detail-box .k,.kpi .k{
+      font-size:10px;
+      color:rgba(255,255,255,.44);
+      text-transform:uppercase;
+      letter-spacing:.12em
+    }
+    .detail-box .v,.kpi .v{
+      margin-top:6px;
+      font-size:20px;
+      font-weight:700
+    }
+    .chart-box{
+      height:230px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:linear-gradient(180deg,rgba(98,169,255,.09),rgba(255,255,255,.02));
+      overflow:hidden
+    }
+    .chart-box svg{
+      width:100%;
+      height:100%;
+      display:block
+    }
+    .legend{
+      margin-top:8px;
+      font-size:11px;
+      color:var(--muted)
+    }
+    .legend span{
+      cursor:pointer;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid transparent
+    }
+    .legend span.active{
+      border-color:var(--line);
+      background:rgba(255,255,255,.04);
+      color:white
+    }
+    .legend .price::before,.legend .fair::before,.legend .open::before,.legend .limit::before{
+      content:'';
+      display:inline-block;
+      width:10px;
+      height:2px;
+      margin-right:6px;
+      vertical-align:middle
+    }
+    .legend .price::before{background:var(--blue)}
+    .legend .fair::before{background:var(--white)}
+    .legend .open::before{background:var(--green)}
+    .legend .limit::before{background:var(--yellow)}
+    .table-mini{
+      border:1px solid var(--line);
+      border-radius:8px;
+      overflow:hidden
+    }
+    .mini-head,.mini-row{
+      display:grid;
+      gap:8px;
+      align-items:center;
+      padding:8px 10px;
+      font-size:11px
+    }
+    .mini-head{
+      background:rgba(255,255,255,.04);
+      color:rgba(255,255,255,.44);
+      text-transform:uppercase;
+      letter-spacing:.12em
+    }
+    .mini-row{border-top:1px solid rgba(255,255,255,.06)}
+    .event-table .mini-head,.event-table .mini-row{
+      grid-template-columns:1fr .8fr .8fr .9fr 1.1fr
+    }
+    @media (max-width:1400px){
+      .layout{grid-template-columns:1fr}
+      .feed{border-right:none}
+      .rows{max-height:none}
+    }
+    @media (max-width:980px){
+      .thead,.row{grid-template-columns:2.2fr .8fr 1fr 1fr .9fr .9fr}
+      .hide-md{display:none}
+      .detail-grid,.kpi-grid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:680px){
+      .thead,.row{grid-template-columns:2.2fr .9fr 1fr 1fr}
+      .hide-sm{display:none}
+      .detail-grid,.kpi-grid{grid-template-columns:1fr}
+      .field.search{min-width:100%}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="left-top">
+      <div><div class="brand-title">Betting Monitor</div></div>
+      <div class="sub"><span class="dot"></span><span id="streamStatus">Backend connected</span></div>
+      <div class="sub" id="eventCounter">0 rows loaded</div>
+    </div>
+    <div class="right-top">
+      <button class="btn" id="toggleControlsBtn">Hide controls</button>
+      <button class="btn" id="refreshBtn">Refresh</button>
+    </div>
+  </div>
+
+  <div class="controls" id="controlsArea">
+    <div class="tabs">
+      <button class="tab active" data-tab="all">All Drops</button>
+      <button class="tab" data-tab="fast">Fast Moves</button>
+      <button class="tab" data-tab="smart">Smart Wallet</button>
+      <button class="tab" data-tab="pressure">Pressure</button>
+    </div>
+
+    <div class="filters">
+      <input id="searchInput" class="field search" placeholder="Search market, category, slug, side..." />
+      <select id="categorySelect" class="field"></select>
+      <select id="sideSelect" class="field">
+        <option value="all">All sides</option>
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+      </select>
+      <select id="sortSelect" class="field">
+        <option value="drop">Sort: Biggest drop</option>
+        <option value="recent">Sort: Most recent</option>
+        <option value="volume">Sort: Volume</option>
+        <option value="wallet">Sort: Wallet score</option>
+      </select>
+      <select id="dropModeSelect" class="field">
+        <option value="drop3m" selected>Window 3m</option>
+        <option value="drop1m">Window 1m</option>
+        <option value="drop5m">Window 5m</option>
+        <option value="drop15m">Window 15m</option>
+        <option value="drop60m">Window 60m</option>
+        <option value="dropPctOpen">Since open</option>
+        <option value="dropPctPeak">From peak</option>
+      </select>
+      <select id="minDropSelect" class="field">
+        <option value="0" selected>Min drop 0%</option>
+        <option value="1">Min drop 1%</option>
+        <option value="2">Min drop 2%</option>
+        <option value="3">Min drop 3%</option>
+        <option value="5">Min drop 5%</option>
+      </select>
+      <select id="volumeSelect" class="field">
+        <option value="0" selected>Any volume</option>
+        <option value="5000">Vol > $5k</option>
+        <option value="25000">Vol > $25k</option>
+        <option value="100000">Vol > $100k</option>
+      </select>
+    </div>
+
+    <div class="metrics">
+      <div class="pill" id="sourceLabel">Backend public Polymarket feed</div>
+      <div class="pill" id="syncLabel">Last sync: —</div>
+      <div class="pill" id="dropStats">Drops: 0 · Fast: 0 · Smart: 0</div>
+      <div class="pill" id="marketStats">Markets: 0 · Timeline ready: 0</div>
+    </div>
+
+    <div id="errorArea"></div>
+  </div>
+
+  <div class="layout">
+    <div class="feed">
+      <div class="thead">
+        <div>Market</div>
+        <div>Side</div>
+        <div>State</div>
+        <div>Price</div>
+        <div class="hide-sm">Fair</div>
+        <div class="hide-md">Drop</div>
+        <div class="hide-md">Volume</div>
+        <div class="hide-sm">Holder</div>
+        <div class="hide-sm">Signal</div>
+      </div>
+      <div class="rows" id="rows"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="side-wrap">
+        <div class="side-card">
+          <div class="side-title">Selected market</div>
+          <div id="detailPane"></div>
+        </div>
+
+        <div class="side-card">
+          <div class="side-title">Price progression</div>
+          <div class="chart-box" id="chartBox"></div>
+          <div class="legend" id="chartLegendControls">
+            <span class="price toggle-line active" data-line="price">Price</span>
+            <span class="fair toggle-line active" data-line="fair">Fair</span>
+            <span class="open toggle-line active" data-line="open">Opening</span>
+            <span class="limit toggle-line active" data-line="limit">Volume</span>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="side-title">Market timeline</div>
+          <div class="table-mini event-table">
+            <div class="mini-head">
+              <div>Time</div>
+              <div>Price</div>
+              <div>Fair</div>
+              <div>Volume</div>
+              <div>Tag</div>
+            </div>
+            <div id="eventRows"></div>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="side-title">Market intelligence</div>
+          <div class="kpi-grid">
+            <div class="kpi"><div class="k">Opening</div><div class="v" id="kpiOpening">—</div></div>
+            <div class="kpi"><div class="k">Current</div><div class="v" id="kpiCurrent">—</div></div>
+            <div class="kpi"><div class="k">Active drop</div><div class="v" id="kpiDrop">—</div></div>
+            <div class="kpi"><div class="k">From peak</div><div class="v" id="kpiPeak">—</div></div>
+            <div class="kpi"><div class="k">Volume</div><div class="v" id="kpiFlow">—</div></div>
+            <div class="kpi"><div class="k">Wallet score</div><div class="v" id="kpiWallet">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'https://betting-monitor-v2-backend.onrender.com';
+
+const state = {
+  search: '',
+  category: 'all',
+  side: 'all',
+  sort: 'drop',
+  dropMode: 'drop3m',
+  minDrop: 0,
+  minVolume: 0,
+  tab: 'all',
+  controlsHidden: false,
+  markets: [],
+  selectedId: null,
+  chartLines: { price: true, fair: true, open: true, limit: true },
+  lastSync: null,
+  error: ''
+};
+
+const asNumber = (v, f = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : f;
+};
+
+const formatUsd = v =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0
+  }).format(asNumber(v));
+
+const formatProb = v => `${(asNumber(v) * 100).toFixed(1)}%`;
+
+const formatOdds = v => {
+  const p = asNumber(v);
+  if (p <= 0 || p >= 1) return '—';
+  return (1 / p).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+};
+
+const formatAgo = ts => {
+  if (!ts) return '—';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+};
+
+const formatTime = ts => {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${p(d.getDate())}/${p(d.getMonth() + 1)}`;
+};
+
+const escapeHtml = s =>
+  String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[m]));
+
+function activeDrop(item) {
+  const value = asNumber(item?.[state.dropMode], 0);
+  if (value > 0) return value;
+
+  if (state.dropMode === 'drop3m') return Math.max(asNumber(item?.drop3m, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'drop1m') return Math.max(asNumber(item?.drop1m, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'drop5m') return Math.max(asNumber(item?.drop5m, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'drop15m') return Math.max(asNumber(item?.drop15m, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'drop60m') return Math.max(asNumber(item?.drop60m, 0), asNumber(item?.dropPctWindow, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'dropPctOpen') return Math.max(asNumber(item?.dropPctOpen, 0), asNumber(item?.dropPct, 0));
+  if (state.dropMode === 'dropPctPeak') return Math.max(asNumber(item?.dropPctPeak, 0), asNumber(item?.dropPct, 0));
+
+  return asNumber(item?.dropPct, 0);
+}
+
+function signalLabel(item) {
+  if (activeDrop(item) >= 5) return 'Fast move';
+  if (asNumber(item.smartWalletScore, 0) >= 70) return 'Smart edge';
+  if (asNumber(item.dropPctPeak, 0) >= 5) return 'Pressure';
+  return item.signal || 'Watching';
+}
+
+function getSelected() {
+  const list = filteredMarkets();
+  return list.find(x => x.id === state.selectedId) || list[0] || null;
+}
+
+function filteredMarkets() {
+  let list = [...state.markets];
+
+  if (state.category !== 'all') list = list.filter(x => x.category === state.category);
+  if (state.side !== 'all') list = list.filter(x => x.outcome === state.side);
+
+  if (state.search.trim()) {
+    const q = state.search.trim().toLowerCase();
+    list = list.filter(x =>
+      (x.market || '').toLowerCase().includes(q) ||
+      (x.category || '').toLowerCase().includes(q) ||
+      (x.slug || '').toLowerCase().includes(q) ||
+      (x.outcome || '').toLowerCase().includes(q) ||
+      (signalLabel(x) || '').toLowerCase().includes(q)
+    );
+  }
+
+  list = list.filter(x => activeDrop(x) >= state.minDrop && asNumber(x.volume24h, 0) >= state.minVolume);
+
+  if (state.tab === 'fast') list = list.filter(x => activeDrop(x) >= 5);
+  if (state.tab === 'smart') list = list.filter(x => asNumber(x.smartWalletScore, 0) >= 70 || signalLabel(x) === 'Smart edge');
+  if (state.tab === 'pressure') list = list.filter(x => asNumber(x.dropPctPeak, 0) >= 5 || signalLabel(x) === 'Pressure');
+
+  if (state.sort === 'drop') list.sort((a, b) => activeDrop(b) - activeDrop(a));
+  if (state.sort === 'recent') list.sort((a, b) => asNumber(b.updatedAt) - asNumber(a.updatedAt));
+  if (state.sort === 'volume') list.sort((a, b) => asNumber(b.volume24h) - asNumber(a.volume24h));
+  if (state.sort === 'wallet') list.sort((a, b) => asNumber(b.smartWalletScore) - asNumber(a.smartWalletScore));
+
+  return list;
+}
+
+async function loadMarkets() {
+  const r = await fetch(`${API_BASE}/api/markets`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`markets failed ${r.status}`);
+  const data = await r.json();
+  state.markets = Array.isArray(data) ? data : [];
+  if (!state.selectedId && state.markets[0]) state.selectedId = state.markets[0].id;
+  state.lastSync = Date.now();
+}
+
+function renderControls() {
+  document.getElementById('controlsArea').style.display = state.controlsHidden ? 'none' : 'block';
+  document.getElementById('toggleControlsBtn').textContent = state.controlsHidden ? 'Show controls' : 'Hide controls';
+  document.getElementById('sourceLabel').textContent = 'Backend public Polymarket feed';
+  document.getElementById('syncLabel').textContent = `Last sync: ${state.lastSync ? formatAgo(state.lastSync) : '—'}`;
+  document.getElementById('eventCounter').textContent = `${state.markets.length} rows loaded`;
+  document.getElementById('searchInput').value = state.search;
+
+  const cats = ['all', ...Array.from(new Set(state.markets.map(x => x.category).filter(Boolean))).sort((a, b) => a.localeCompare(b))];
+  document.getElementById('categorySelect').innerHTML = cats.map(c =>
+    `<option value="${escapeHtml(c)}">${c === 'all' ? 'All categories' : escapeHtml(c)}</option>`
+  ).join('');
+  document.getElementById('categorySelect').value = state.category;
+  document.getElementById('sideSelect').value = state.side;
+  document.getElementById('sortSelect').value = state.sort;
+  document.getElementById('dropModeSelect').value = state.dropMode;
+  document.getElementById('minDropSelect').value = String(state.minDrop);
+  document.getElementById('volumeSelect').value = String(state.minVolume);
+
+  const list = filteredMarkets();
+  const fast = list.filter(x => activeDrop(x) >= 5).length;
+  const smart = list.filter(x => asNumber(x.smartWalletScore, 0) >= 70).length;
+  const timelineReady = state.markets.filter(x => Array.isArray(x.chart) && x.chart.length > 0).length;
+
+  document.getElementById('dropStats').textContent = `Drops: ${list.length} · Fast: ${fast} · Smart: ${smart}`;
+  document.getElementById('marketStats').textContent = `Markets: ${state.markets.length} · Timeline ready: ${timelineReady}`;
+  document.getElementById('errorArea').innerHTML = state.error ? `<div class="notice">${escapeHtml(state.error)}</div>` : '';
+}
+
+function renderRows() {
+  const rowsEl = document.getElementById('rows');
+  const list = filteredMarkets();
+  const selected = getSelected();
+
+  if (selected) state.selectedId = selected.id;
+
+  if (!list.length) {
+    rowsEl.innerHTML = '<div class="row"><div>No matching markets.</div><div></div><div></div><div></div><div class="hide-sm"></div><div class="hide-md"></div><div class="hide-md"></div><div class="hide-sm"></div><div class="hide-sm"></div></div>';
+    return;
+  }
+
+  rowsEl.innerHTML = list.map(item => {
+    const label = signalLabel(item);
+    const badgeClass =
+      label === 'Fast move' ? 'fast' :
+      label === 'Pressure' ? 'pressure' :
+      label === 'Smart edge' ? 'smart' : 'watch';
+
+    return `
+      <div class="row ${selected && selected.id === item.id ? 'active' : ''}" data-id="${escapeHtml(item.id)}">
+        <div>
+          <div class="market-title">${escapeHtml(item.market)}</div>
+          <div class="market-meta">${escapeHtml(item.category)} · ${escapeHtml(item.slug || '')}</div>
+        </div>
+        <div>${escapeHtml(item.outcome || '')}</div>
+        <div class="green">${formatAgo(item.updatedAt)}</div>
+        <div>${formatOdds(item.previousPrice)} <span class="red">→ ${formatOdds(item.currentPrice)}</span></div>
+        <div class="hide-sm">${formatOdds(item.fairPrice)}</div>
+        <div class="hide-md ${activeDrop(item) >= 5 ? 'red' : activeDrop(item) > 0 ? 'yellow' : 'muted'}">${activeDrop(item).toFixed(2)}%</div>
+        <div class="hide-md">${formatUsd(item.volume24h)}</div>
+        <div class="hide-sm">${escapeHtml(item.primaryWalletName || '—')}</div>
+        <div class="hide-sm"><span class="badge ${badgeClass}">${escapeHtml(label)}</span></div>
+      </div>
+    `;
+  }).join('');
+
+  rowsEl.querySelectorAll('.row[data-id]').forEach(el => {
+    el.onclick = () => {
+      state.selectedId = el.dataset.id;
+      render();
+    };
+  });
+}
+
+function renderChart() {
+  const box = document.getElementById('chartBox');
+  const selected = getSelected();
+
+  if (!selected || !selected.chart || !selected.chart.length) {
+    box.innerHTML = '<div class="tiny" style="padding:12px;">Waiting for chart data...</div>';
+    return;
+  }
+
+  const pts = selected.chart.map((t, i) => ({
+    price: asNumber(t.price, selected.currentPrice),
+    fair: asNumber(selected.fairPrice, asNumber(t.price, selected.currentPrice)),
+    volume: asNumber(t.volume, 0),
+    idx: i
+  }));
+
+  const w = 460, h = 230, padX = 16, padY = 18;
+  const vals = [];
+  pts.forEach(p => vals.push(p.price, p.fair));
+  vals.push(asNumber(selected.openingPrice, selected.currentPrice));
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = Math.max(.001, max - min);
+
+  const toPts = k => pts.map((p, i) => {
+    const x = padX + (i / Math.max(1, pts.length - 1)) * (w - padX * 2);
+    const y = h - padY - ((p[k] - min) / range) * (h - padY * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const volMax = Math.max(...pts.map(p => p.volume || 0), 1);
+  const volBars = pts.map((p, i) => {
+    const x = padX + (i / Math.max(1, pts.length - 1)) * (w - padX * 2);
+    const barH = ((p.volume || 0) / volMax) * 55;
+    return `<line x1="${x}" y1="${h-4}" x2="${x}" y2="${h-4-barH}" stroke="rgba(246,198,91,0.65)" stroke-width="3" />`;
+  }).join('');
+
+  const openingY = h - padY - ((asNumber(selected.openingPrice, selected.currentPrice) - min) / range) * (h - padY * 2);
+
+  box.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      ${state.chartLines.limit ? volBars : ''}
+      ${state.chartLines.open ? `<line x1="${padX}" y1="${openingY}" x2="${w-padX}" y2="${openingY}" stroke="rgba(57,217,138,0.8)" stroke-width="1.5" stroke-dasharray="4 4" />` : ''}
+      ${state.chartLines.fair ? `<polyline fill="none" stroke="rgba(255,255,255,0.96)" stroke-width="2.2" points="${toPts('fair')}" />` : ''}
+      ${state.chartLines.price ? `<polyline fill="none" stroke="rgba(98,169,255,0.98)" stroke-width="2.8" points="${toPts('price')}" />` : ''}
+    </svg>
+  `;
+}
+
+function renderDetail() {
+  const selected = getSelected();
+  const detail = document.getElementById('detailPane');
+  const eventRows = document.getElementById('eventRows');
+
+  if (!selected) {
+    detail.innerHTML = '<div class="tiny">Select a market from the feed.</div>';
+    eventRows.innerHTML = '';
+    return;
+  }
+
+  detail.innerHTML = `
+    <div class="detail-title">${escapeHtml(selected.market)}</div>
+    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+      <span class="badge">${escapeHtml(selected.category || '')}</span>
+      <span class="badge">${escapeHtml(selected.outcome || '')}</span>
+      <span class="badge">${escapeHtml(signalLabel(selected))}</span>
+    </div>
+    <div class="detail-grid" style="margin-top:10px;">
+      <div class="detail-box"><div class="k">Opening price</div><div class="v">${formatOdds(selected.openingPrice)}</div><div class="tiny">${formatProb(selected.openingPrice)}</div></div>
+      <div class="detail-box"><div class="k">Current price</div><div class="v">${formatOdds(selected.currentPrice)}</div><div class="tiny">${formatProb(selected.currentPrice)}</div></div>
+      <div class="detail-box"><div class="k">Fair price</div><div class="v">${formatOdds(selected.fairPrice)}</div><div class="tiny">${formatProb(selected.fairPrice)}</div></div>
+      <div class="detail-box"><div class="k">Slug</div><div class="v" style="font-size:14px; line-height:1.4;">${escapeHtml(selected.slug || '—')}</div></div>
+    </div>
+  `;
+
+  renderChart();
+
+  eventRows.innerHTML = selected.timeline && selected.timeline.length
+    ? selected.timeline.map(ev => `
+        <div class="mini-row">
+          <div>${formatTime(ev.time)}</div>
+          <div>${formatOdds(ev.price)}</div>
+          <div>${formatOdds(ev.fair)}</div>
+          <div>${formatUsd(ev.size)}</div>
+          <div>${escapeHtml(ev.tag || '')}</div>
+        </div>
+      `).join('')
+    : '<div class="mini-row"><div class="tiny">Waiting for timeline…</div><div></div><div></div><div></div><div></div></div>';
+
+  document.getElementById('kpiOpening').textContent = formatOdds(selected.openingPrice);
+  document.getElementById('kpiCurrent').textContent = formatOdds(selected.currentPrice);
+  document.getElementById('kpiDrop').textContent = `${activeDrop(selected).toFixed(2)}%`;
+  document.getElementById('kpiPeak').textContent = `${asNumber(selected.dropPctPeak, 0).toFixed(2)}%`;
+  document.getElementById('kpiFlow').textContent = formatUsd(selected.volume24h);
+  document.getElementById('kpiWallet').textContent = selected.smartWalletScore ?? '—';
+}
+
+function render() {
+  renderControls();
+  renderRows();
+  renderDetail();
+}
+
+async function init() {
+  try {
+    await loadMarkets();
+    state.error = state.markets.length ? '' : 'Backend reachable, but no rows are currently available yet. Wait 30–60 seconds and refresh.';
+    render();
+  } catch (e) {
+    state.error = `Backend not connected or backend returned no data. ${e.message || ''}`;
+    render();
+  }
+}
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  state.search = e.target.value;
+  render();
+});
+
+document.getElementById('categorySelect').addEventListener('change', e => {
+  state.category = e.target.value;
+  render();
+});
+
+document.getElementById('sideSelect').addEventListener('change', e => {
+  state.side = e.target.value;
+  render();
+});
+
+document.getElementById('sortSelect').addEventListener('change', e => {
+  state.sort = e.target.value;
+  render();
+});
+
+document.getElementById('dropModeSelect').addEventListener('change', e => {
+  state.dropMode = e.target.value;
+  render();
+});
+
+document.getElementById('minDropSelect').addEventListener('change', e => {
+  state.minDrop = asNumber(e.target.value, 0);
+  render();
+});
+
+document.getElementById('volumeSelect').addEventListener('change', e => {
+  state.minVolume = asNumber(e.target.value, 0);
+  render();
+});
+
+document.querySelectorAll('.tab').forEach(el => el.addEventListener('click', () => {
+  state.tab = el.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}));
+
+document.getElementById('toggleControlsBtn').addEventListener('click', () => {
+  state.controlsHidden = !state.controlsHidden;
+  render();
+});
+
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  await init();
+});
+
+document.getElementById('chartLegendControls').addEventListener('click', e => {
+  const el = e.target.closest('.toggle-line');
+  if (!el) return;
+  const key = el.dataset.line;
+  state.chartLines[key] = !state.chartLines[key];
+  el.classList.toggle('active', state.chartLines[key]);
+  renderChart();
+});
+
+init();
+setInterval(init, 30000);
+</script>
+</body>
+</html>
